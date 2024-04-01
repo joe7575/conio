@@ -9,14 +9,13 @@ description = {
     detailed = [[
 	This library implements (parts) the of old Turbo C "conio.h".
         See header file for suported functions.
-        To avoid name conflicts a prefix "c_" was added into the original functions.
     ]],
     homepage = "https://github.com/joe7575/conio",
     license = "MIT"
 }
 
 dependencies = {
-   "lua == 5.1"
+   "lua >= 5.1"
 }
 
 build = {

@@ -1,7 +1,13 @@
 local conio = require("conio")
 
 conio.clrscr()
-print(conio.version())
+conio.gotoxy(35,1)
+conio.textcolor("YELLOW")
+print("#### Conio Lua Demo ####")
+conio.reset()
+
+conio.gotoxy(1,3)
+print("Version", conio.version())
 print("Press any key to continue...")
 conio.getch()
 print("Press another key...")
