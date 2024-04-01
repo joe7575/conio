@@ -1,4 +1,4 @@
-package = "conio"
+package = "lua-conio"
 version = "1.0-0"
 source = {
     url = "git+https://github.com/joe7575/conio.git"

@@ -10,3 +10,6 @@
 /obj
 /x64/Debug
 /.vs
+*.o
+*.so
+.vscode

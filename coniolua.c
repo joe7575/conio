@@ -1,8 +1,35 @@
 #include <stdlib.h>
+#include <string.h>
 #include "lua.h"
 #include "lauxlib.h"
-
 #include "conio.h"
+
+static const char *colors[] = {
+    "BLACK",
+    "BLUE",
+    "GREEN",
+    "CYAN",
+    "RED",
+    "MAGENTA",
+    "BROWN",
+    "LIGHTGRAY",
+    "DARKGRAY",
+    "LIGHTBLUE", 
+    "LIGHTGREEN",
+    "LIGHTCYAN",
+    "LIGHTRED",
+    "LIGHTMAGENTA",
+    "YELLOW",
+    "WHITE",
+    "BLINK",
+     NULL
+};
+
+static const char *cursortype[] = {
+    "NOCURSOR",
+    "SOLIDCURSOR",
+    "NORMALCURSOR"
+};
 
 static int version(lua_State *L) {
     lua_pushstring(L, "1.0.0");
@@ -23,7 +50,7 @@ static int getche(lua_State *L) {
 
 static int kbhit(lua_State *L) {
     int ch = c_kbhit();
-    lua_pushinteger(L, ch);
+    lua_pushboolean(L, ch == 0 ? 0 : 1);
     return 1;
 }
 
@@ -40,19 +67,19 @@ static int gotoxy(lua_State *L) {
 }
 
 static int setcursortype(lua_State *L) {
-    int cur_t = luaL_checkinteger(L, 1);
-    c_setcursortype(cur_t);
+    int ctype = luaL_checkoption(L, 1, NULL, cursortype);
+    c_setcursortype(ctype);
     return 0;
 }
 
 static int textbackground(lua_State *L) {
-    int newcolor = luaL_checkinteger(L, 1);
+    int newcolor = luaL_checkoption(L, 1, NULL, colors);
     c_textbackground(newcolor);
     return 0;
 }
 
 static int textcolor(lua_State *L) {
-    int newcolor = luaL_checkinteger(L, 1);
+    int newcolor = luaL_checkoption(L, 1, NULL, colors);
     c_textcolor(newcolor);
     return 0;
 }
@@ -100,21 +127,11 @@ static int textattr(lua_State *L) {
     return 0;
 }
 
-/*
-int   c_getch(void);
-int   c_getche(void);
-int   c_kbhit(void);
+static int reset(lua_State *L) {
+    printf("\x1b[m");
+    return 0;
+}
 
-void  c_clrscr();
-void  c_gotoxy(int x, int y);
-void  c_setcursortype(int cur_t);
-void  c_textbackground(int newcolor);
-void  c_textcolor(int newcolor);
-int   c_wherex(void);
-int   c_wherey(void);
-void  c_gettextinfo(struct text_info *r);
-void  c_textattr(int newattr);
-*/
 static const luaL_Reg R[] = {
     {"version",                 version},
     {"getch",                   getch},
@@ -129,6 +146,7 @@ static const luaL_Reg R[] = {
     {"wherey",                  wherey},
     {"gettextinfo",             gettextinfo},
     {"textattr",                textattr},
+    {"reset",                   reset},
     {NULL, NULL}
 };
 
@@ -137,6 +155,7 @@ static const luaL_Reg R[] = {
 
 
 LUALIB_API int luaopen_conio(lua_State *L) {
+    lua_newtable(L);
     luaL_register(L, NULL, R);
     return 1;
 }
