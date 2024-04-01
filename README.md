@@ -16,8 +16,8 @@ Obs: Windows 10 suports console virtual terminal sequences
 
 ## Lua wrapper (luarocks)
 
-This fork provides a API for Lua scripts.
-After download the repository, install the library with:
+This fork provides a API for Lua scripts and can be stalled with "luarocks".
+
 
 ### Installation
 
@@ -27,13 +27,13 @@ extract the file from the ZIP archive.
 Change your directory  to `conio-master` and install the Lua library with:
 
 ```
-luarocks make --lua-version 5.1
+luarocks make
 ```
 
 For Linux like systems, use:
 
 ```
-sudo luarocks make --lua-version 5.1
+sudo luarocks make
 ```
 
 For the installation of 'luarocks' (if not already available),
