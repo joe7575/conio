@@ -39,8 +39,6 @@ struct text_info
   int cury;           /* y-coordinate in current window */
 };
 
-
-
 int   c_getch(void);
 int   c_getche(void);
 int   c_kbhit(void);
