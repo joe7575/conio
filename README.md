@@ -1,6 +1,6 @@
-# Turbo C like <conio.h> for windows and Linux
+# Turbo C like <conio.h> for Lua
 
-This library implements (parts) the of old Turbo C conio.h
+This library implements (parts) the of old Turbo C "conio.h"
 See header file for suported functions.
 
 To avoid name conflicts a prefix "c_" was added into the original functions.
@@ -16,7 +16,7 @@ Obs: Windows 10 suports console virtual terminal sequences
 
 ## Lua wrapper (luarocks)
 
-This fork provides a API for Lua scripts and can be stalled with "luarocks".
+This fork provides a API for Lua scripts and can be installed with "luarocks".
 
 
 ### Installation
@@ -39,17 +39,24 @@ sudo luarocks make
 For the installation of 'luarocks' (if not already available),
 see [luarocks](https://luarocks.org/)
 
+
 ### Current Status
 
 The library is tested on Linux/Ubuntu so far.
 It probably won't work under Windows yet...
 
+
 ## History
+
+### V1.1.0 (2024-04-02)
+
+- "raw mode" functions added to get rid of terminal outputs 
+- Rework the static function "get_cursor_position" to proper handle accumulated keystrokes
+- Add "msleep" function needed for the Lua environment
+- Add MIT license headers
 
 ### v1.0.0 (2024-04-01)
 
 - Forked from [thradams/conio](https://github.com/thradams/conio)
 - Lua wrapper/API and demo "test.lua" added
-
-
 

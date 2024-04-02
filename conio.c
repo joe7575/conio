@@ -1,5 +1,26 @@
+/*
+MIT License
 
+Copyright (c) 2015-2024 Thiago Adams [thradams]
 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #ifdef _WIN32
 
 #include <windows.h>
@@ -201,25 +222,22 @@ void c_clrscr()
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <time.h>
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
 #include "conio.h"
 
 /*
-** FIFO buffer for stdin characters.
+** FIFO buffer for accumulated keystrokes
 */
 static char stdin_buf[32];
 static int stdin_head = 0;
 static int stdin_tail = 0;
 
-void c_flushstdin(void)
-{
-  stdin_head = 0;
-  stdin_tail = 0;
-}
-
-int c_getch2(void)
+// getch version which handles accumulated keystrokes
+int c_getch(void)
 {
   int ch = EOF;
 
@@ -235,7 +253,7 @@ int c_getch2(void)
   return ch;
 }
 
-void pushstdin(int ch)
+static void pushstdin(int ch)
 {
   stdin_buf[stdin_tail] = ch;
   stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
@@ -258,34 +276,8 @@ void c_enable_raw_mode(void)
     atexit(c_disable_raw_mode);
 }
 
-int c_kbhit(void)
-{
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-  ch = getchar();
-
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-  if (ch != EOF)
-  {
-    ungetc(ch, stdin);
-    return 1;
-  }
-
-  return 0;
-}
-
-int c_kbhit2(void)
+// Internal function to check if a key has been pressed
+static int _kbhit(void)
 {
     int ch;
     int oldf;
@@ -306,7 +298,8 @@ int c_kbhit2(void)
   return 0;
 }
 
-int c_kbhit3(void)
+// Export function with takes into account the accumulated keystrokes
+int c_kbhit(void)
 {
     int ch;
     int oldf;
@@ -331,33 +324,7 @@ int c_kbhit3(void)
   return 0;
 }
 
-static int getCursorPosition2(int *x, int *y)
-{
-  *x = -1;
-  *y = -1;
-
-  char buf[32];
-  unsigned int i = 0;
-  int ch;
-
-  printf("\x1B[6n");
-
-  while (i < sizeof(buf) - 1)
-  {
-    ch = c_getch();
-    if (ch == EOF || ch == 'R') break;
-    buf[i++] = ch;
-  }
-  buf[i] = '\0';
-
-  if (buf[0] != '\x1b' || buf[1] != '[') return -1;
-
-  if (sscanf(&buf[2], "%d;%d", y, x) != 2) return -1;
-
-  return 0;
-}
-
-static int getCursorPosition3(int *x, int *y)
+static int get_cursor_position(int *x, int *y)
 {
   *x = -1;
   *y = -1;
@@ -367,8 +334,8 @@ static int getCursorPosition3(int *x, int *y)
   int ch;
   char *ptr;
 
-  // Read all available characters
-  while(c_kbhit2() == 1)
+  // Handle accumulated keystrokes
+  while(_kbhit() == 1)
   {
     pushstdin(getchar());
   }
@@ -376,14 +343,18 @@ static int getCursorPosition3(int *x, int *y)
   // Request cursor position
   printf("\x1B[6n");
 
+  // Read all chars until 'R' ("^[<v>;<h>R" expected)
   while(i < sizeof(buf) - 1)
   {
+    // Use getchar without "_kbhit" to wait for the response
     ch = getchar();
     if (ch == EOF || ch == 'R') break;
     buf[i++] = ch;
   }
   buf[i] = '\0';
   
+  // We have to take into account the keyboard input that has occurred in the meantime.
+  // Therefore, we have to search for the start ESC sequence.
   ptr = strchr(buf, '\x1b');
   if (ptr == NULL) {
     pushstdin('X');
@@ -391,12 +362,14 @@ static int getCursorPosition3(int *x, int *y)
   }
   *ptr++ = 0;
 
+  // Push keyboard inputs back into the stdin buffer
   i = 0;
   while(buf[i] != 0) {
     pushstdin(buf[i]);
     i++;
   }
 
+  // Finally, parse cursor position
   if (*ptr != '[') {
     pushstdin(*ptr);
     return -1;
@@ -412,28 +385,14 @@ static int getCursorPosition3(int *x, int *y)
 int c_wherex(void)
 {
   int x, y;
-  getCursorPosition2(&x, &y);
+  get_cursor_position(&x, &y);
   return x;
 }
 
 int c_wherey(void)
 {
   int x, y;
-  getCursorPosition2(&x, &y);
-  return y;
-}
-
-int c_wherex2(void)
-{
-  int x, y;
-  getCursorPosition3(&x, &y);
-  return x;
-}
-
-int c_wherey2(void)
-{
-  int x, y;
-  getCursorPosition3(&x, &y);
+  get_cursor_position(&x, &y);
   return y;
 }
 
@@ -609,72 +568,6 @@ void c_textbackground(int newcolor)
   puts(s);
 }
 
-
-/* Read 1 character - echo defines echo mode */
-/*
-static char getch_(int echo)
-{
-  struct termios old, new;
-  int ch;
-
-  tcgetattr(0, &old);
-
-  new = old;
-  new.c_lflag &= ~ICANON;
-  if (!echo)
-  {
-    new.c_lflag &= ~ECHO;
-  }
-  tcsetattr(0, TCSANOW, &new);
-
-  ch = getchar();
-
-  tcsetattr(0, TCSANOW, &old);
-
-  return ch;
-}
-*/
-
-/* Read 1 character without echo */
-int c_getch(void)
-{
-  struct termios old, new;
-  int ch;
-
-  tcgetattr(0, &old);
-
-  new = old;
-  new.c_lflag &= ~ICANON;
-  new.c_lflag &= ~ECHO;
-  tcsetattr(0, TCSANOW, &new);
-
-  ch = getchar();
-
-  tcsetattr(0, TCSANOW, &old);
-
-  return ch;
-}
-
-/* Read 1 character with echo */
-int c_getche(void)
-{
-  struct termios old, new;
-  int ch;
-
-  tcgetattr(0, &old);
-
-  new = old;
-  new.c_lflag &= ~ICANON;
-  //new.c_lflag &= ~ECHO;
-  tcsetattr(0, TCSANOW, &new);
-
-  ch = getchar();
-
-  tcsetattr(0, TCSANOW, &old);
-  return ch;
-}
-
-
 void c_setcursortype(int cur_t)
 {
   switch (cur_t)
@@ -703,7 +596,7 @@ void c_gettextinfo(struct text_info *r)
   r->screenwidth = w.ws_col;
 
   int x, y;
-  getCursorPosition2(&x, &y);
+  get_cursor_position(&x, &y);
 
 
   r->curx = x;
@@ -714,6 +607,22 @@ void c_gettextinfo(struct text_info *r)
 void c_textattr(int newattr)
 {
   //tODO
+}
+
+/* msleep(): Sleep for the requested number of milliseconds. */
+int c_msleep(int msec)
+{
+    struct timespec ts;
+    int res;
+
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+
+    do {
+        res = nanosleep(&ts, &ts);
+    } while (res && errno == EINTR);
+
+    return res;
 }
 
 #endif //linux

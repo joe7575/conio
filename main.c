@@ -1,3 +1,26 @@
+/*
+MIT License
+
+Copyright (c) 2015-2024 Thiago Adams [thradams]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -8,22 +31,6 @@
 
 // sudo service ssh start
 //~/projects/Linux/bin/x64/Debug
-
-/* msleep(): Sleep for the requested number of milliseconds. */
-int msleep(uint32_t msec)
-{
-    struct timespec ts;
-    int res;
-
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
-
-    do {
-        res = nanosleep(&ts, &ts);
-    } while (res && errno == EINTR);
-
-    return res;
-}
 
 void Test1()
 {
@@ -75,18 +82,16 @@ void Test3()
     printf("The character isn't extended\n");
 }
 
-void Test4()
-{
-  int ch;
-  printf("Input a character:");
-  ch = c_getche();
-  if (ch)
-  {
-    printf("\nYou input a '%c'\n", ch);
-  }
- 
-
-}
+// void Test4()
+// {
+//   int ch;
+//   printf("Input a character:");
+//   ch = c_getche();
+//   if (ch)
+//   {
+//     printf("\nYou input a '%c'\n", ch);
+//   }
+// }
 
 void Test5()
 {
@@ -123,12 +128,13 @@ void Test8()
   int i;
   char ch;
 
-  c_enable_raw_mode();
   c_clrscr();
+  printf("Press 'q' to quit\r\n"); 
+
   while(true)
   {
-    if(c_kbhit3())
-      ch = c_getch2();
+    if(c_kbhit())
+      ch = c_getch();
     else
       ch = EOF;
     // quit if 'q' is pressed
@@ -142,16 +148,17 @@ void Test8()
     }
     else
     {
-      c_wherex2();
-      msleep(100);
-      c_wherex2();
+      c_wherex();
+      c_msleep(100);
+      c_wherey();
     }
   }
-  c_disable_raw_mode();
 }
 
 int main(void)
 {
+  c_enable_raw_mode();
+
   //Test1();
   //Test2();
   //Test3();
@@ -160,5 +167,7 @@ int main(void)
   //Test6();
   //Test7();
   Test8();
+
+  c_disable_raw_mode();
   return 0;
 }
