@@ -39,9 +39,14 @@ struct text_info
   int cury;           /* y-coordinate in current window */
 };
 
+void c_disable_raw_mode(void);
+void c_enable_raw_mode(void);
+
 int   c_getch(void);
 int   c_getche(void);
 int   c_kbhit(void);
+int   c_kbhit3(void);
+int   c_getch2(void);
 
 void  c_clrscr();
 void  c_gotoxy(int x, int y);
@@ -52,4 +57,6 @@ int   c_wherex(void);
 int   c_wherey(void);
 void  c_gettextinfo(struct text_info *r);
 void  c_textattr(int newattr);
+int   c_wherex2(void);
+int   c_wherey2(void);
 

@@ -194,13 +194,69 @@ void c_clrscr()
 
 #elif __linux__
 
-
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
+
 #include "conio.h"
+
+/*
+** FIFO buffer for stdin characters.
+*/
+static char stdin_buf[32];
+static int stdin_head = 0;
+static int stdin_tail = 0;
+
+void c_flushstdin(void)
+{
+  stdin_head = 0;
+  stdin_tail = 0;
+}
+
+int c_getch2(void)
+{
+  int ch = EOF;
+
+  if (stdin_head != stdin_tail)
+  {
+    ch = stdin_buf[stdin_head];
+    stdin_head = (stdin_head + 1) % sizeof(stdin_buf);
+  }
+  else
+  {
+    ch = getchar();
+  }
+  return ch;
+}
+
+void pushstdin(int ch)
+{
+  stdin_buf[stdin_tail] = ch;
+  stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
+}
+
+void c_disable_raw_mode(void)
+{
+    struct termios term;
+    tcgetattr(0, &term);
+    term.c_lflag |= ICANON | ECHO;
+    tcsetattr(0, TCSANOW, &term);
+}
+
+void c_enable_raw_mode(void)
+{
+    struct termios term;
+    tcgetattr(0, &term);
+    term.c_lflag &= ~(ICANON | ECHO); // Disable echo as well
+    tcsetattr(0, TCSANOW, &term);
+    atexit(c_disable_raw_mode);
+}
 
 int c_kbhit(void)
 {
@@ -229,6 +285,51 @@ int c_kbhit(void)
   return 0;
 }
 
+int c_kbhit2(void)
+{
+    int ch;
+    int oldf;
+
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if (ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
+}
+
+int c_kbhit3(void)
+{
+    int ch;
+    int oldf;
+
+    if (stdin_head != stdin_tail)
+    {
+        return 1;
+    }
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if (ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
+}
 
 static int getCursorPosition2(int *x, int *y)
 {
@@ -256,6 +357,58 @@ static int getCursorPosition2(int *x, int *y)
   return 0;
 }
 
+static int getCursorPosition3(int *x, int *y)
+{
+  *x = -1;
+  *y = -1;
+
+  char buf[32];
+  unsigned int i = 0;
+  int ch;
+  char *ptr;
+
+  // Read all available characters
+  while(c_kbhit2() == 1)
+  {
+    pushstdin(getchar());
+  }
+  
+  // Request cursor position
+  printf("\x1B[6n");
+
+  while(i < sizeof(buf) - 1)
+  {
+    ch = getchar();
+    if (ch == EOF || ch == 'R') break;
+    buf[i++] = ch;
+  }
+  buf[i] = '\0';
+  
+  ptr = strchr(buf, '\x1b');
+  if (ptr == NULL) {
+    pushstdin('X');
+    return -1;
+  }
+  *ptr++ = 0;
+
+  i = 0;
+  while(buf[i] != 0) {
+    pushstdin(buf[i]);
+    i++;
+  }
+
+  if (*ptr != '[') {
+    pushstdin(*ptr);
+    return -1;
+  }
+
+  if (sscanf(++ptr, "%d;%d", y, x) != 2) {
+    pushstdin('Z');
+    return -1;
+  }
+  return 0;
+}
+
 int c_wherex(void)
 {
   int x, y;
@@ -270,6 +423,19 @@ int c_wherey(void)
   return y;
 }
 
+int c_wherex2(void)
+{
+  int x, y;
+  getCursorPosition3(&x, &y);
+  return x;
+}
+
+int c_wherey2(void)
+{
+  int x, y;
+  getCursorPosition3(&x, &y);
+  return y;
+}
 
 void c_gotoxy(int x, int y)
 {

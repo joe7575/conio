@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
+#include <sys/select.h>
+#include <sys/ioctl.h>
 #include "lua.h"
 #include "lauxlib.h"
 #include "conio.h"
@@ -96,6 +99,18 @@ static int wherey(lua_State *L) {
     return 1;
 }
 
+static int wherex2(lua_State *L) {
+    int x = c_wherex2();
+    lua_pushinteger(L, x);
+    return 1;
+}
+
+static int wherey2(lua_State *L) {
+    int y = c_wherey2();
+    lua_pushinteger(L, y);
+    return 1;
+}
+
 static int gettextinfo(lua_State *L) {
     struct text_info r;
     c_gettextinfo(&r);
@@ -132,6 +147,44 @@ static int reset(lua_State *L) {
     return 0;
 }
 
+static int disable_raw_mode(lua_State *L)
+{
+    c_disable_raw_mode();
+    return 0;
+}
+
+static int enable_raw_mode(lua_State *L)
+{
+    c_enable_raw_mode();
+    return 0;
+}
+
+static int kbhit2(lua_State *L)
+{
+    int byteswaiting;
+    ioctl(0, FIONREAD, &byteswaiting);
+    lua_pushboolean(L, byteswaiting > 0);
+    return 1;
+}
+
+static int getch2(lua_State *L)
+{
+    lua_pushinteger(L, getchar());
+    return 1;
+}
+
+static int getch3(lua_State *L)
+{
+    lua_pushinteger(L, c_getch2());
+    return 1;
+}
+
+static int kbhit3(lua_State *L)
+{
+    lua_pushboolean(L, c_kbhit3());
+    return 1;
+}
+
 static const luaL_Reg R[] = {
     {"version",                 version},
     {"getch",                   getch},
@@ -147,6 +200,14 @@ static const luaL_Reg R[] = {
     {"gettextinfo",             gettextinfo},
     {"textattr",                textattr},
     {"reset",                   reset},
+    {"enable_raw_mode",         enable_raw_mode},
+    {"disable_raw_mode",        disable_raw_mode},
+    {"kbhit2",                  kbhit2},
+    {"getch2",                  getch2},
+    {"getch3",                  getch3},
+    {"kbhit3",                  kbhit3},
+    {"wherex2",                 wherex2},
+    {"wherey2",                 wherey2},
     {NULL, NULL}
 };
 

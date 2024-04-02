@@ -1,8 +1,29 @@
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
+#include <errno.h>
 #include "conio.h"
 
 // sudo service ssh start
 //~/projects/Linux/bin/x64/Debug
+
+/* msleep(): Sleep for the requested number of milliseconds. */
+int msleep(uint32_t msec)
+{
+    struct timespec ts;
+    int res;
+
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+
+    do {
+        res = nanosleep(&ts, &ts);
+    } while (res && errno == EINTR);
+
+    return res;
+}
 
 void Test1()
 {
@@ -96,14 +117,48 @@ void  Test7()
   printf("\r\nA key was pressed...\r\n"); 
   
 }
+
+void Test8()
+{
+  int i;
+  char ch;
+
+  c_enable_raw_mode();
+  c_clrscr();
+  while(true)
+  {
+    if(c_kbhit3())
+      ch = c_getch2();
+    else
+      ch = EOF;
+    // quit if 'q' is pressed
+    if(ch == 'q')
+    {
+      break;
+    }
+    else if(ch != EOF)
+    {
+      printf("%c", ch);
+    }
+    else
+    {
+      c_wherex2();
+      msleep(100);
+      c_wherex2();
+    }
+  }
+  c_disable_raw_mode();
+}
+
 int main(void)
 {
   //Test1();
   //Test2();
-  Test3();
+  //Test3();
   //Test4();
   //Test5();
   //Test6();
   //Test7();
+  Test8();
   return 0;
 }
