@@ -89,12 +89,12 @@ local function getch()
     
     local val = __getch()
 
-    -- if val == 27 then
-    --     local val2 = __getch()
-    --     if val2 == 91 then
-    --         val = 0x80 + __getch()
-    --     end
-    -- end
+    if val == 27 then
+        local val2 = __getch()
+        if val2 == 91 then
+            val = 0x80 + __getch()
+        end
+    end
     return val
 end
 
@@ -107,7 +107,7 @@ while true do
     local x = -1
     local y = -1
     if val == nil then
-		conio.msleep(100)
+        conio.msleep(100)
         while x == -1 or y == -1 do
             x = conio.wherex()
             y = conio.wherey()
@@ -117,20 +117,13 @@ while true do
         io.flush()
         conio.gotoxy(x, y)
     else
-        if val >= 32 and val <= 126 then
-            s = string.char(val)
-        else
-            s = string.format("<%d>", val)
-        end
-		io.write(s)
+        s = string.char(val)
+        io.write(s)
         io.flush()
-		if s == "q" then
-			break
-		end
-	end
+        if s == "q" then
+            break
+        end
+    end
 end
 
 conio.disable_raw_mode()
-
-
-
