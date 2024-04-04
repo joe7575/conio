@@ -232,7 +232,7 @@ void c_clrscr()
 /*
 ** FIFO buffer for accumulated keystrokes
 */
-static char stdin_buf[32];
+static char stdin_buf[64];
 static int stdin_head = 0;
 static int stdin_tail = 0;
 
@@ -255,11 +255,8 @@ int c_getch(void)
 
 static void pushstdin(int ch)
 {
-  if(((stdin_head + 1) % sizeof(stdin_buf)) != stdin_tail)
-  {
-    stdin_buf[stdin_tail] = ch;
-    stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
-  }
+  stdin_buf[stdin_tail] = ch;
+  stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
 }
 
 void c_disable_raw_mode(void)
@@ -360,7 +357,6 @@ static int get_cursor_position(int *x, int *y)
   // Therefore, we have to search for the start ESC sequence.
   ptr = strchr(buf, '\x1b');
   if (ptr == NULL) {
-    pushstdin('X');
     return -1;
   }
   *ptr++ = 0;
@@ -379,7 +375,6 @@ static int get_cursor_position(int *x, int *y)
   }
 
   if (sscanf(++ptr, "%d;%d", y, x) != 2) {
-    pushstdin('Z');
     return -1;
   }
   return 0;

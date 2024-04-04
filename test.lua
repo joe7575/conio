@@ -1,4 +1,4 @@
-/*
+--[[
 MIT License
 
 Copyright (c) 2015-2024 Thiago Adams [thradams]
@@ -20,7 +20,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-*/
+]]--
+
 local conio = require("conio")
 
 conio.enable_raw_mode()
@@ -88,12 +89,12 @@ local function getch()
     
     local val = __getch()
 
-    if val == 27 then
-        local val2 = __getch()
-        if val2 == 91 then
-            val = 0x80 + __getch()
-        end
-    end
+    -- if val == 27 then
+    --     local val2 = __getch()
+    --     if val2 == 91 then
+    --         val = 0x80 + __getch()
+    --     end
+    -- end
     return val
 end
 
@@ -103,16 +104,24 @@ print("Press 'q' to quit")
 while true do
     local val = getch()
     local s = ""
-	if val == nil then
+    local x = -1
+    local y = -1
+    if val == nil then
 		conio.msleep(100)
-        local x = conio.wherex()
-        local y = conio.wherey()
+        while x == -1 or y == -1 do
+            x = conio.wherex()
+            y = conio.wherey()
+        end
         conio.gotoxy(70, 1)
         printf("x=%d, y=%d    ", x, y)
         io.flush()
         conio.gotoxy(x, y)
     else
-        s = string.char(val)
+        if val >= 32 and val <= 126 then
+            s = string.char(val)
+        else
+            s = string.format("<%d>", val)
+        end
 		io.write(s)
         io.flush()
 		if s == "q" then
