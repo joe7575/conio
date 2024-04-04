@@ -255,8 +255,11 @@ int c_getch(void)
 
 static void pushstdin(int ch)
 {
-  stdin_buf[stdin_tail] = ch;
-  stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
+  if(((stdin_head + 1) % sizeof(stdin_buf)) != stdin_tail)
+  {
+    stdin_buf[stdin_tail] = ch;
+    stdin_tail = (stdin_tail + 1) % sizeof(stdin_buf);
+  }
 }
 
 void c_disable_raw_mode(void)
